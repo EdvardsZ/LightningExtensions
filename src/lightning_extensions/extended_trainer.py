@@ -1,6 +1,6 @@
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
-from data_module import construct_kfold_datamodule
+from .data_module import construct_kfold_datamodule
 import lightning as L
 import wandb
 
@@ -23,7 +23,7 @@ class ExtendedTrainer(L.Trainer):
             mode='min',
         )
         
-        self.checkpoint_callback = checkpoint_callback
+        #self.checkpoint_callback = checkpoint_callback
         super().__init__(accelerator='gpu', devices=devices, max_epochs = max_epochs, enable_progress_bar=True, callbacks=[checkpoint_callback], logger=[logger, self.wandb], **kwargs)
 
     def fit(self, model, train_dataloader, val_dataloader, **kwargs):
