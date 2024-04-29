@@ -22,6 +22,8 @@ class ExtendedTrainer(L.Trainer):
             save_top_k=1,
             mode='min',
         )
+        
+        self.checkpoint_callback = checkpoint_callback
         super().__init__(accelerator='gpu', devices=devices, max_epochs = max_epochs, enable_progress_bar=True, callbacks=[checkpoint_callback], logger=[logger, self.wandb], **kwargs)
 
     def fit(self, model, train_dataloader, val_dataloader, **kwargs):
@@ -57,12 +59,17 @@ class ExtendedTrainer(L.Trainer):
             self.logger = WandbLogger(project = self.project_name, name=self.get_fold_model_name(fold), log_model="all", group = self.model_name)
             
             super().fit(model, data_module, ckpt_path=path)
-            self.save_model_checkpoint()
-
+            
+            # load the best model
+            model = model.load_from_checkpoint(self.checkpoint_callback.best_model_path)
+            
             res = self.test(model=model, datamodule=data_module)
             results.append(res)
 
             self.finish_logging()
+            
+            # reset the checkpoint callback
+            self.checkpoint_callback.best_model_path = None
             
 
     def get_fold_model_name(self, fold):
