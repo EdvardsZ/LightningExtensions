@@ -3,6 +3,8 @@ from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from .data_module import construct_kfold_datamodule
 import lightning as L
 import wandb
+import os
+import torch
 
 
 class ExtendedTrainer(L.Trainer):
@@ -13,7 +15,7 @@ class ExtendedTrainer(L.Trainer):
         self._epochs = max_epochs
 
         logger = TensorBoardLogger(save_dir='lightning_logs/', name=self.model_name)
-        self.wandb = WandbLogger(project = project_name, name=self.model_name, log_model="all")
+        self.wandb = WandbLogger(project = project_name, name=self.model_name, log_model=False)
 
         checkpoint_callback = ModelCheckpoint(
             monitor=monitor,
@@ -46,9 +48,11 @@ class ExtendedTrainer(L.Trainer):
         # checkpoint to restore from
         # this is a bit hacky because the model needs to be saved before the fit method
         self.strategy._lightning_module = model
-        path = "checkpoints/k_initial_weights.ckpt"
+        path = f"checkpoints/k_initial_weights_{self.model_name}.ckpt"
         self.save_checkpoint(path)
         self.strategy._lightning_module = None
+        
+        print("test")
 
         results = []
 
@@ -60,16 +64,23 @@ class ExtendedTrainer(L.Trainer):
             
             super().fit(model, data_module, ckpt_path=path)
             
-            # load the best model
-            model = model.load_from_checkpoint(self.checkpoint_callback.best_model_path)
-            
-            res = self.test(model=model, datamodule=data_module)
+            res = self.test(model=model, datamodule=data_module, ckpt_path=self.checkpoint_callback.best_model_path)
             results.append(res)
 
             self.finish_logging()
             
             # reset the checkpoint callback
             self.checkpoint_callback.best_model_path = None
+            
+        # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
+        dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
+        path = f"assets/results/raw/{self.project_name}/{dataset_name}/{self.model_name}_crossval_results.pt"
+        # 1. ensure the directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # 2. save the results
+        torch.save(results, path)
+        
+        return results
             
 
     def get_fold_model_name(self, fold):
