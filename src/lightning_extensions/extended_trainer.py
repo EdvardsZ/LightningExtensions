@@ -40,7 +40,15 @@ class ExtendedTrainer(L.Trainer):
         wandb.finish(quiet=True)
 
     def cross_validate(self, model, train_dataloader, val_dataloader, k = 5):
-                # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
+        
+        # Initialize parameters in the model.
+        batch = next(iter(train_dataloader))
+        model.train()
+        x, x_cond, y = batch
+        model.forward(x, x_cond, y)
+        
+        
+        # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
         dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
         path = f"assets/results/raw/{self.project_name}/{dataset_name}/{self.model_name}_crossval_results.pt"
         
@@ -56,7 +64,6 @@ class ExtendedTrainer(L.Trainer):
         print("Starting crossvalidation")
 
         data_module = construct_kfold_datamodule(train_dataloader, val_dataloader, k) 
-        ## TODO: INITIALLY NOT SHUFFLED
 
         # checkpoint to restore from
         # this is a bit hacky because the model needs to be saved before the fit method
