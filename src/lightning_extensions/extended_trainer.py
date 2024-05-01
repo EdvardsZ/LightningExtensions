@@ -73,7 +73,7 @@ class ExtendedTrainer(L.Trainer):
             print("Starting fold: " + str(fold))
             data_module.fold_index = fold
 
-            self.logger = WandbLogger(project = self.project_name, name=self.get_fold_model_name(fold), log_model="all", group = self.model_name[:127])
+            self.logger = WandbLogger(project = self.project_name, name=self.get_fold_model_name(fold), log_model=False, group = self.model_name[:127])
             
             super().fit(model, data_module, ckpt_path=path)
             
