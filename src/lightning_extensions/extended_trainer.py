@@ -40,6 +40,19 @@ class ExtendedTrainer(L.Trainer):
         wandb.finish(quiet=True)
 
     def cross_validate(self, model, train_dataloader, val_dataloader, k = 5):
+                # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
+        dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
+        path = f"assets/results/raw/{self.project_name}/{dataset_name}/{self.model_name}_crossval_results.pt"
+        
+        # Check if the results exist. If they do, return them
+        
+        if os.path.exists(path):
+            print("Results already exist. Loading them")
+            print("Training skippped")
+            return torch.load(path)
+        
+        
+    
         print("Starting crossvalidation")
 
         data_module = construct_kfold_datamodule(train_dataloader, val_dataloader, k) 
@@ -60,7 +73,7 @@ class ExtendedTrainer(L.Trainer):
             print("Starting fold: " + str(fold))
             data_module.fold_index = fold
 
-            self.logger = WandbLogger(project = self.project_name, name=self.get_fold_model_name(fold), log_model="all", group = self.model_name)
+            self.logger = WandbLogger(project = self.project_name, name=self.get_fold_model_name(fold), log_model="all", group = self.model_name[:127])
             
             super().fit(model, data_module, ckpt_path=path)
             
@@ -71,10 +84,6 @@ class ExtendedTrainer(L.Trainer):
             
             # reset the checkpoint callback
             self.checkpoint_callback.best_model_path = None
-            
-        # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
-        dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
-        path = f"assets/results/raw/{self.project_name}/{dataset_name}/{self.model_name}_crossval_results.pt"
         # 1. ensure the directory exists
         os.makedirs(os.path.dirname(path), exist_ok=True)
         # 2. save the results
