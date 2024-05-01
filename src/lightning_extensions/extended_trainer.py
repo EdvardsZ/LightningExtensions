@@ -91,6 +91,10 @@ class ExtendedTrainer(L.Trainer):
             
             # reset the checkpoint callback
             self.checkpoint_callback.best_model_path = None
+            
+        # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
+        dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
+        path = f"assets/results/raw/{self.project_name}/{dataset_name}/{self.model_name}_crossval_results.pt"
         # 1. ensure the directory exists
         os.makedirs(os.path.dirname(path), exist_ok=True)
         # 2. save the results
