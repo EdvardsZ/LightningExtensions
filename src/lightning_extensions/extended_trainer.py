@@ -1,4 +1,4 @@
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from .data_module import construct_kfold_datamodule
 import lightning as L
@@ -8,7 +8,7 @@ import torch
 
 
 class ExtendedTrainer(L.Trainer):
-    def __init__(self, project_name: str, model_name: str, max_epochs: int, devices = [5], monitor = "val_loss", **kwargs ):
+    def __init__(self, project_name: str, model_name: str, max_epochs: int, devices = [5], monitor = "val_loss", refresh_rate: int = 1, **kwargs ):
         self.model_name  = model_name
         self.project_name = project_name
 
@@ -25,8 +25,10 @@ class ExtendedTrainer(L.Trainer):
             mode='min',
         )
         
+        progress_bar = TQDMProgressBar(refresh_rate=refresh_rate)
+        
         #self.checkpoint_callback = checkpoint_callback
-        super().__init__(accelerator='gpu', devices=devices, max_epochs = max_epochs, enable_progress_bar=True, callbacks=[checkpoint_callback], logger=[logger, self.wandb], **kwargs)
+        super().__init__(accelerator='gpu', devices=devices, max_epochs = max_epochs, enable_progress_bar=True, callbacks=[checkpoint_callback, progress_bar], logger=[logger, self.wandb], **kwargs)
 
     def fit(self, model, train_dataloader, val_dataloader, **kwargs):
         super().fit(model, train_dataloader, val_dataloader, **kwargs)
