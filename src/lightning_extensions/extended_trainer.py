@@ -70,7 +70,7 @@ class ExtendedTrainer(L.Trainer):
         # checkpoint to restore from
         # this is a bit hacky because the model needs to be saved before the fit method
         self.strategy._lightning_module = model
-        path = f"checkpoints/k_initial_weights_{self.model_name}.ckpt"
+        path = f"data/checkpoints/k_initial_weights_{self.model_name}.ckpt"
         self.save_checkpoint(path)
         self.strategy._lightning_module = None
         
@@ -93,6 +93,9 @@ class ExtendedTrainer(L.Trainer):
             
             # reset the checkpoint callback
             self.checkpoint_callback.best_model_path = None
+            
+        # remove k_initial
+        os.remove(path)
             
         # find in the model name the dataset name ( 'dataset=DATASET_NAME&)
         dataset_name = self.model_name.split("dataset=")[1].split("&")[0]
