@@ -8,7 +8,7 @@ import torch
 
 
 class ExtendedTrainer(L.Trainer):
-    def __init__(self, project_name: str, model_name: str, max_epochs: int, devices = [5], monitor = "val_loss", refresh_rate: int = 1, **kwargs ):
+    def __init__(self, project_name: str, model_name: str, max_epochs: int, devices = [5], monitor = "val_loss", refresh_rate: int = 1, checkpoint_path = "checkpoints/", **kwargs ):
         self.model_name  = model_name
         self.project_name = project_name
 
@@ -16,10 +16,11 @@ class ExtendedTrainer(L.Trainer):
 
         logger = TensorBoardLogger(save_dir='lightning_logs/', name=self.model_name)
         self.wandb = WandbLogger(project = project_name, name=self.model_name, log_model=False)
-
+        
+        self.checkpoint_path = checkpoint_path
         checkpoint_callback = ModelCheckpoint(
             monitor=monitor,
-            dirpath='checkpoints/',
+            dirpath=checkpoint_path,
             filename= self.model_name + '_{epoch:02d}-{val_loss:.2f}',
             save_top_k=1,
             mode='min',
@@ -35,7 +36,7 @@ class ExtendedTrainer(L.Trainer):
         self.finish_logging()
 
     def save_model_checkpoint(self):
-        super().save_checkpoint('checkpoints/' + self.model_name + '.ckpt')
+        super().save_checkpoint(self.checkpoint_path + self.model_name + '.ckpt')
 
     def finish_logging(self):
         self.wandb.finalize("success")
@@ -70,7 +71,7 @@ class ExtendedTrainer(L.Trainer):
         # checkpoint to restore from
         # this is a bit hacky because the model needs to be saved before the fit method
         self.strategy._lightning_module = model
-        path = f"data/checkpoints/k_initial_weights_{self.model_name}.ckpt"
+        path = self.checkpoint_path + f"/k_initial_weights_{self.model_name}.ckpt"
         self.save_checkpoint(path)
         self.strategy._lightning_module = None
         
